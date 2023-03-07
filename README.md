@@ -1,7 +1,9 @@
 # mdns-discovery
 
 service config
-、、、
+```
+#!/bin/bash
+ipaddr=$(ifconfig enp3s0 | grep 'inet ' | awk '{print $2}')
 docker run --rm \
     --net host \
     --cap-drop ALL \
@@ -11,14 +13,14 @@ docker run --rm \
         -service _own_work._tcp \
         -host x1.service.own \
         -port 8080 \
-        -ip 192.168.1.1
-、、、
+        -ip $ipaddr
+```
 
 client config
-、、、
+```
 docker run --rm \
     --net host \
     --cap-drop ALL \
     --read-only \
     kayuii\resolv resolv -service _own_work._tcp
-、、、
+```

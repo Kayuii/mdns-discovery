@@ -39,9 +39,13 @@ func (c *Client) Run(config *Config) error {
 	entries := make(chan *zeroconf.ServiceEntry)
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
-			log.Println(entry)
+			if len(entry.AddrIPv6) > 0 {
+				log.Printf("{\"host\": \"%s\",\"ipv6\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv6[0], entry.Port)
+			} else {
+				log.Printf("{\"host\": \"%s\",\"ipv4\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv4[0], entry.Port)
+			}
 		}
-		log.Println("No more entries.")
+		// log.Println("No more entries.")
 	}(entries)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(c.waitTime))
@@ -53,6 +57,6 @@ func (c *Client) Run(config *Config) error {
 
 	<-ctx.Done()
 	// Wait some additional time to see debug messages on go routine shutdown.
-	time.Sleep(1 * time.Second)
+	// time.Sleep(1 * time.Second)
 	return nil
 }
