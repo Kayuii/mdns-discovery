@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: main_test
+name: master
 
 platform:
   os: linux
@@ -10,12 +10,24 @@ platform:
 trigger:
   ref:
   - refs/heads/main
+  - refs/tags/v**
 
 steps:
 - name: status
-  image: alpine/git
+  image: ubuntu
   commands:
-    - echo "Hello World"
+    - echo ${DRONE_COMMIT_SHA:0:8}
+    - echo v${DRONE_TAG##*v}
+    - echo ${DRONE_TAG#*v}
+    - echo ${DRONE_TAG#*v}
+    - echo ${DRONE_TAG#v}
+    - echo ${DRONE_TAG##v}
+    - echo ${DRONE_TAG^}
+    - echo ${DRONE_TAG^^}
+    - echo ${DRONE_TAG,}
+    - echo ${DRONE_TAG,,}
+    - echo ${DRONE_TAG:5}
+    - echo ${DRONE_TAG:5:5}
 
 
 ---
@@ -32,22 +44,6 @@ trigger:
   - refs/tags/v**
 
 steps:
-- name: testing
-  image: ubuntu
-  commands:
-  - "echo ${DRONE_COMMIT_SHA:0:8}"
-  - "echo v${DRONE_TAG##*v}"
-  - "echo ${DRONE_TAG#*v}"
-  - "echo ${DRONE_TAG#*v}"
-  - "echo ${DRONE_TAG#v}"
-  - "echo ${DRONE_TAG##v}"
-  - "echo ${DRONE_TAG^}"
-  - "echo ${DRONE_TAG^^}"
-  - "echo ${DRONE_TAG,}"
-  - "echo ${DRONE_TAG,,}"
-  - "echo ${DRONE_TAG:5}"
-  - "echo ${DRONE_TAG:5:5}"
-
 - name: publish
   image: thegeeklab/drone-docker-buildx
   privileged: true
