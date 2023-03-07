@@ -1,3 +1,21 @@
+---
+kind: pipeline
+type: docker
+name: main_test
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  ref:
+  - refs/heads/main
+
+steps:
+- name: status
+  image: alpine/git
+  commands:
+    - echo "Hello World"
 
 
 ---
