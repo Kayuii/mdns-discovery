@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -40,15 +41,20 @@ func (c *Client) Run(config *Config) error {
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
 			if len(entry.AddrIPv6) > 0 {
-				log.Printf("{\"host\": \"%s\",\"ipv6\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv6[0], entry.Port)
+				fmt.Printf("{\"host\": \"%s\",\"ipv6\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv6[0], entry.Port)
 			} else {
-				log.Printf("{\"host\": \"%s\",\"ipv4\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv4[0], entry.Port)
+				fmt.Printf("{\"host\": \"%s\",\"ipv4\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv4[0], entry.Port)
 			}
 		}
-		// log.Println("No more entries.")
 	}(entries)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(c.waitTime))
+	second := time.Second * time.Duration(c.waitTime)
+
+	if !(c.waitTime > 0) {
+		second = time.Second / time.Microsecond
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), second)
 	defer cancel()
 	err = resolver.Browse(ctx, c.service, c.domain, entries)
 	if err != nil {

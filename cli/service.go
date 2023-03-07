@@ -15,7 +15,7 @@ var serviceFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    Service,
 		Aliases: []string{"service", "s"},
-		Value:   "discovery-service",
+		Value:   "_chia_work._tcp",
 		Usage:   "Set the service type of the new service.",
 	},
 	&cli.StringFlag{
