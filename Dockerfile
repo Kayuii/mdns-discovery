@@ -14,3 +14,6 @@ RUN cd /opt \
 
 FROM alpine
 COPY --from=builder /opt/mdnscli-static /bin/mdnscli
+COPY docker-entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

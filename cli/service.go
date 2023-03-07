@@ -26,7 +26,7 @@ var serviceFlags = []cli.Flag{
 	},
 	&cli.StringFlag{
 		Name:    Host,
-		Aliases: []string{"host", "h"},
+		Aliases: []string{"host"},
 		Value:   "host1",
 		Usage:   "Set host name for service.",
 	},

@@ -1,0 +1,53 @@
+
+
+---
+kind: pipeline
+type: docker
+name: build-tag
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  ref:
+  - refs/tags/v**
+
+steps:
+- name: testing
+  image: ubuntu
+  commands:
+  - "echo ${DRONE_COMMIT_SHA:0:8}"
+  - "echo v${DRONE_TAG##*v}"
+  - "echo ${DRONE_TAG#*v}"
+  - "echo ${DRONE_TAG#*v}"
+  - "echo ${DRONE_TAG#v}"
+  - "echo ${DRONE_TAG##v}"
+  - "echo ${DRONE_TAG^}"
+  - "echo ${DRONE_TAG^^}"
+  - "echo ${DRONE_TAG,}"
+  - "echo ${DRONE_TAG,,}"
+  - "echo ${DRONE_TAG:5}"
+  - "echo ${DRONE_TAG:5:5}"
+
+- name: publish
+  image: thegeeklab/drone-docker-buildx
+  privileged: true
+  settings:
+    tags:
+    - latest
+    - v${DRONE_TAG##*v}
+    platforms: "linux/amd64,linux/arm64,linux/arm"
+    dockerfile: Dockerfile
+    repo: kayuii/mdnscli
+    context: .
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+  when:
+    ref:
+    - refs/tags/v**
+
+
+...
