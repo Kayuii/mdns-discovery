@@ -40,9 +40,6 @@ func (c *Client) Run(config *Config) error {
 	c.domain = config.Domain
 	c.service = config.Service
 	c.waitTime = config.WaitTime
-	instance := "mdns-discovery"
-
-	// instance := fmt.Sprintf("%s.%s.%s.", strings.Trim("mdns-discovery", "."), strings.Trim(c.service, "."), strings.Trim(c.domain, "."))
 
 	h, err := hostfile.NewFile(getDefaultHostFile())
 	if err != nil {
@@ -84,14 +81,10 @@ func (c *Client) Run(config *Config) error {
 		cancel()
 	}()
 
-	err = resolver.Lookup(ctx, instance, c.service, c.domain, entries)
+	err = resolver.Browse(ctx, c.service, c.domain, entries)
 	if err != nil {
 		log.Fatalln("Failed to browse:", err.Error())
 	}
-	// err = resolver.Browse(ctx, c.service, c.domain, entries)
-	// if err != nil {
-	// 	log.Fatalln("Failed to browse:", err.Error())
-	// }
 
 	<-ctx.Done()
 
