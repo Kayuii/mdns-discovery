@@ -20,9 +20,8 @@ var (
 )
 
 type Client struct {
-	service  string
-	domain   string
-	waitTime int
+	hostfile *hostfile.File
+	resolver *zeroconf.Resolver
 }
 
 func New() *Client {
@@ -36,18 +35,15 @@ type Config struct {
 }
 
 func (c *Client) Run(config *Config) error {
-	// p = &config
-	c.domain = config.Domain
-	c.service = config.Service
-	c.waitTime = config.WaitTime
 
 	h, err := hostfile.NewFile(getDefaultHostFile())
 	if err != nil {
 		return err
 	}
+	c.hostfile = h
 
 	// Discover all services on the network (e.g. _workstation._tcp)
-	resolver, err := zeroconf.NewResolver(nil)
+	c.resolver, err = zeroconf.NewResolver(nil)
 	if err != nil {
 		log.Fatalln("Failed to initialize resolver:", err.Error())
 	}
@@ -63,8 +59,8 @@ func (c *Client) Run(config *Config) error {
 			} else {
 				ip = entry.AddrIPv4[0].String()
 			}
-			h.AddRoute(mdns_name, types.NewRoute(ip, entry.HostName))
-			h.Flush()
+			c.hostfile.AddRoute(mdns_name, types.NewRoute(ip, entry.HostName))
+			c.hostfile.Flush()
 
 			fmt.Printf("Domains '%s' added.\n", entry.HostName)
 		}
@@ -75,19 +71,18 @@ func (c *Client) Run(config *Config) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		sig := <-sigs
-		h.RemoveProfile(mdns_name)
-		h.Flush()
+		c.hostfile.RemoveProfile(mdns_name)
+		c.hostfile.Flush()
 		fmt.Println("signal", sig, "called", ". Terminating...")
 		cancel()
 	}()
 
-	err = resolver.Browse(ctx, c.service, c.domain, entries)
+	err = c.resolver.Browse(ctx, config.Service, config.Domain, entries)
 	if err != nil {
 		log.Fatalln("Failed to browse:", err.Error())
 	}
 
 	<-ctx.Done()
-
 	return nil
 }
 
