@@ -46,6 +46,7 @@ clean:
 
 .PHONY: deps
 deps:
+	$(GOMOD) tidy
 	$(GOGET) github.com/grandcat/zeroconf
 	$(GOGET) github.com/cenkalti/backoff
 	$(GOGET) github.com/urfave/cli/v2

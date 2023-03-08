@@ -4,9 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
 
 	"github.com/grandcat/zeroconf"
+
+	hostfile "github.com/guumaster/hostctl/pkg/file"
+	"github.com/guumaster/hostctl/pkg/types"
+)
+
+var (
+	mdns_name string = "mdns-resolv"
 )
 
 type Client struct {
@@ -30,6 +40,14 @@ func (c *Client) Run(config *Config) error {
 	c.domain = config.Domain
 	c.service = config.Service
 	c.waitTime = config.WaitTime
+	instance := "mdns-discovery"
+
+	// instance := fmt.Sprintf("%s.%s.%s.", strings.Trim("mdns-discovery", "."), strings.Trim(c.service, "."), strings.Trim(c.domain, "."))
+
+	h, err := hostfile.NewFile(getDefaultHostFile())
+	if err != nil {
+		return err
+	}
 
 	// Discover all services on the network (e.g. _workstation._tcp)
 	resolver, err := zeroconf.NewResolver(nil)
@@ -39,30 +57,55 @@ func (c *Client) Run(config *Config) error {
 
 	entries := make(chan *zeroconf.ServiceEntry)
 	go func(results <-chan *zeroconf.ServiceEntry) {
+
 		for entry := range results {
+			var ip = ""
 			if len(entry.AddrIPv6) > 0 {
-				fmt.Printf("{\"host\": \"%s\",\"ipv6\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv6[0], entry.Port)
+				ip = entry.AddrIPv6[0].String()
+
 			} else {
-				fmt.Printf("{\"host\": \"%s\",\"ipv4\": \"%s\",\"port\": %d}", entry.HostName, entry.AddrIPv4[0], entry.Port)
+				ip = entry.AddrIPv4[0].String()
 			}
+			h.AddRoute(mdns_name, types.NewRoute(ip, entry.HostName))
+			h.Flush()
+
+			fmt.Printf("Domains '%s' added.\n", entry.HostName)
 		}
 	}(entries)
 
-	second := time.Second * time.Duration(c.waitTime)
+	ctx, cancel := context.WithCancel(context.Background())
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		sig := <-sigs
+		h.RemoveProfile(mdns_name)
+		h.Flush()
+		fmt.Println("signal", sig, "called", ". Terminating...")
+		cancel()
+	}()
 
-	if !(c.waitTime > 0) {
-		second = time.Second / time.Microsecond
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), second)
-	defer cancel()
-	err = resolver.Browse(ctx, c.service, c.domain, entries)
+	err = resolver.Lookup(ctx, instance, c.service, c.domain, entries)
 	if err != nil {
 		log.Fatalln("Failed to browse:", err.Error())
 	}
+	// err = resolver.Browse(ctx, c.service, c.domain, entries)
+	// if err != nil {
+	// 	log.Fatalln("Failed to browse:", err.Error())
+	// }
 
 	<-ctx.Done()
-	// Wait some additional time to see debug messages on go routine shutdown.
-	// time.Sleep(1 * time.Second)
+
 	return nil
+}
+
+func getDefaultHostFile() string {
+	if runtime.GOOS == "linux" {
+		return "/etc/hosts" //nolint: goconst
+	}
+
+	if runtime.GOOS == "windows" {
+		return `C:/Windows/System32/Drivers/etc/hosts`
+	}
+
+	return "/etc/hosts"
 }
