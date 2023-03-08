@@ -59,6 +59,7 @@ func (c *Client) Run(config *Config) error {
 			} else {
 				ip = entry.AddrIPv4[0].String()
 			}
+			c.hostfile.RemoveHostnames(mdns_name, []string{entry.HostName})
 			c.hostfile.AddRoute(mdns_name, types.NewRoute(ip, entry.HostName))
 			c.hostfile.Flush()
 
